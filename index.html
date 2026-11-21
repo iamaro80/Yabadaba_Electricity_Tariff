@@ -99,7 +99,7 @@ const I18N = {
     title:'حاسبة تسعيرة الكهرباء', tagline:'من الكيلوواط ساعة إلى الفاتورة، ومن الفاتورة إلى الكيلوواط ساعة',
     modeKwh:'أعرف الاستهلاك (كيلوواط ساعة)', modeBill:'أعرف قيمة الفاتورة (دينار)',
     lblKwh:'الاستهلاك (كيلوواط ساعة)', lblBill:'قيمة الفاتورة (دينار)',
-    old:'التسعيرة القديمة', sub:'التسعيرة المدعومة', uns:'التسعيرة غير المدعومة',
+    sub:'التسعيرة المدعومة', uns:'التسعيرة غير المدعومة',
     unitKwh:'كيلوواط ساعة', unitJd:'دينار', fils:'فلس',
     tierRange:(a,b)=>`من ${a} إلى ${b}`, tierOver:a=>`أكثر من ${a}`,
     meter:'أجرة العداد', rural:'فلس الريف', tv:'التلفزيون', waste:'النفايات', total:'المجموع',
@@ -114,7 +114,7 @@ const I18N = {
     title:'Electricity Tariff Calculator', tagline:'From kWh to bill, and from bill to kWh',
     modeKwh:'I know the kWh', modeBill:'I know the bill (JD)',
     lblKwh:'Consumption (kWh)', lblBill:'Bill total (JD)',
-    old:'Old tariff', sub:'Subsidized tariff', uns:'Unsubsidized tariff',
+    sub:'Subsidized tariff', uns:'Unsubsidized tariff',
     unitKwh:'kWh', unitJd:'JD', fils:'fils',
     tierRange:(a,b)=>`${a}–${b}`, tierOver:a=>`Over ${a}`,
     meter:'Meter rental', rural:'Rural fee', tv:'TV fee', waste:'Waste fee', total:'Total',
@@ -131,7 +131,6 @@ const T=k=>I18N[lang][k];
 
 // Tiers: [upper limit kWh, JD per kWh]
 const TARIFFS = [
-  {id:'old', color:'var(--c-old)', tiers:[[160,.033],[300,.072],[500,.086],[600,.114],[750,.158],[Infinity,.188]]},
   {id:'sub', color:'var(--c-sub)', tiers:[[300,.05],[600,.1],[Infinity,.2]]},
   {id:'uns', color:'var(--c-uns)', tiers:[[Infinity,.12]]},
 ];
