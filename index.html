@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>حاسبة تسعيرة الكهرباء</title>
+<script>
+  // apply saved theme/language before paint; light + Arabic are the defaults
+  try{
+    var d=document.documentElement;
+    d.dataset.theme=localStorage.getItem('theme')||'light';
+    var l=localStorage.getItem('lang')||'ar';
+    d.lang=l; d.dir=l==='ar'?'rtl':'ltr';
+  }catch(e){}
+</script>
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#ffffff; --line:#dbe3ee; --txt:#14213d; --mut:#5b6b85;
+    --acc:#f5a300; --acc-ink:#1b1400; --volt:#1d4ed8; --input:#ffffff;
+    --hero1:#14213d; --hero2:#1d4ed8; --shadow:0 2px 10px rgba(20,33,61,.08);
+    --c-old:#6366f1; --c-sub:#16a34a; --c-uns:#ea580c;
+  }
+  [data-theme=dark]{
+    --bg:#0a0f1e; --card:#121a30; --line:#243252; --txt:#e8eefc; --mut:#8fa0c4;
+    --acc:#ffc928; --acc-ink:#1b1400; --volt:#60a5fa; --input:#0a0f1e;
+    --hero1:#0d1530; --hero2:#17306b; --shadow:0 2px 14px rgba(0,0,0,.5);
+    --c-old:#818cf8; --c-sub:#4ade80; --c-uns:#fb923c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,"Segoe UI",Tahoma,Roboto,sans-serif;background:var(--bg);color:var(--txt);padding:16px;transition:background .2s,color .2s}
+  main{max-width:1000px;margin:0 auto}
+  .hero{display:flex;align-items:center;gap:14px;padding:18px 20px;margin-bottom:16px;border-radius:14px;color:#fff;
+    background:linear-gradient(120deg,var(--hero1),var(--hero2));box-shadow:var(--shadow);position:relative;overflow:hidden;flex-wrap:wrap}
+  .hero::after{content:"";position:absolute;inset:0;opacity:.08;pointer-events:none;
+    background:repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 22px)}
+  .bolt{width:46px;height:46px;flex:none;filter:drop-shadow(0 0 8px rgba(255,201,40,.7))}
+  .hero h1{font-size:1.35rem;margin:0;line-height:1.3}
+  .hero p{margin:2px 0 0;opacity:.8;font-size:.9rem}
+  .hero .grow{flex:1;z-index:1;min-width:180px}
+  .hero .btns{display:flex;gap:8px;z-index:1}
+  .hero button{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;
+    border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.9rem;font-family:inherit}
+  .hero button:hover{background:rgba(255,255,255,.22)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .modes{display:flex;gap:6px;margin-bottom:14px;background:var(--bg);padding:4px;border-radius:10px;border:1px solid var(--line)}
+  .modes button{flex:1;padding:10px;border-radius:8px;border:0;background:transparent;color:var(--mut);cursor:pointer;font-size:1rem;font-family:inherit}
+  .modes button.on{background:var(--acc);color:var(--acc-ink);font-weight:700;box-shadow:0 0 12px rgba(245,163,0,.45)}
+  input{width:100%;padding:12px;font-size:1.3rem;border-radius:10px;border:2px solid var(--line);background:var(--input);color:var(--txt);outline:none;font-family:inherit;direction:ltr;text-align:start}
+  [dir=rtl] input{text-align:right}
+  input:focus{border-color:var(--acc)}
+  label{display:block;margin-bottom:6px;color:var(--mut)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .t{border-top:5px solid var(--c);margin-bottom:0}
+  .t h2{margin:0 0 10px;font-size:1.05rem}
+  .big{font-size:2rem;font-weight:800;color:var(--c)}
+  .sub{color:var(--mut);font-size:.9rem;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  td{padding:4px 0;border-bottom:1px dashed var(--line)}
+  td:last-child{text-align:end;white-space:nowrap}
+  tr.tot td{font-weight:700;border-bottom:0;padding-top:8px;color:var(--c)}
+  .err{color:#dc2626;min-height:1.2em;margin-top:8px}
+  small{color:var(--mut);display:block;line-height:1.7}
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffc928" d="M13.5 1 4 13.5h6L8.5 23 20 9.5h-6.5z"/></svg>
+    <div class="grow">
+      <h1 data-i="title"></h1>
+      <p data-i="tagline"></p>
+    </div>
+    <div class="btns">
+      <button id="lang"></button>
+      <button id="theme"></button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="modes">
+      <button id="mKwh" class="on" data-i="modeKwh"></button>
+      <button id="mBill" data-i="modeBill"></button>
+    </div>
+    <label id="lbl" for="inp"></label>
+    <input id="inp" type="text" inputmode="decimal" autocomplete="off" value="300" autofocus>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="grid" id="out"></div>
+
+  <div class="card" style="margin-top:16px"><small>
+    <span data-i="note1"></span><br><span data-i="note2"></span>
+  </small></div>
+</main>
+
+<script>
+const I18N = {
+  ar:{
+    title:'حاسبة تسعيرة الكهرباء', tagline:'من الكيلوواط ساعة إلى الفاتورة، ومن الفاتورة إلى الكيلوواط ساعة',
+    modeKwh:'أعرف الاستهلاك (كيلوواط ساعة)', modeBill:'أعرف قيمة الفاتورة (دينار)',
+    lblKwh:'الاستهلاك (كيلوواط ساعة)', lblBill:'قيمة الفاتورة (دينار)',
+    old:'التسعيرة القديمة', sub:'التسعيرة المدعومة', uns:'التسعيرة غير المدعومة',
+    unitKwh:'كيلوواط ساعة', unitJd:'دينار', fils:'فلس',
+    tierRange:(a,b)=>`من ${a} إلى ${b}`, tierOver:a=>`أكثر من ${a}`,
+    meter:'أجرة العداد', rural:'فلس الريف', tv:'التلفزيون', waste:'النفايات', total:'المجموع',
+    forKwh:k=>`لاستهلاك ${k} كيلوواط ساعة`, forBill:b=>`لفاتورة قيمتها ${b} دينار`,
+    below:m=>`الفاتورة أقل من الحد الأدنى للرسوم وهو ${m} دينار.`,
+    bad:'أدخل رقماً موجباً.',
+    note1:'الفاتورة = رسوم الطاقة (شرائح تصاعدية) + أجرة العداد 0.200 + فلس الريف (0.001 × الاستهلاك) + التلفزيون 1.000 + النفايات (20÷12 + 0.005 × (الاستهلاك − 200)، ولا تقل عن صفر). كل المبالغ بالدينار.',
+    note2:'عند إدخال قيمة الفاتورة، يُحسب الاستهلاك لكل تسعيرة على حدة، لذلك تعني الفاتورة نفسها استهلاكاً مختلفاً في كل تسعيرة.',
+    langBtn:'الإنجليزية', light:'☀️ فاتح', dark:'🌙 داكن', title2:'حاسبة تسعيرة الكهرباء'
+  },
+  en:{
+    title:'Electricity Tariff Calculator', tagline:'From kWh to bill, and from bill to kWh',
+    modeKwh:'I know the kWh', modeBill:'I know the bill (JD)',
+    lblKwh:'Consumption (kWh)', lblBill:'Bill total (JD)',
+    old:'Old tariff', sub:'Subsidized tariff', uns:'Unsubsidized tariff',
+    unitKwh:'kWh', unitJd:'JD', fils:'fils',
+    tierRange:(a,b)=>`${a}–${b}`, tierOver:a=>`Over ${a}`,
+    meter:'Meter rental', rural:'Rural fee', tv:'TV fee', waste:'Waste fee', total:'Total',
+    forKwh:k=>`for ${k} kWh`, forBill:b=>`for a bill of ${b} JD`,
+    below:m=>`Bill is below the minimum charge of ${m} JD.`,
+    bad:'Enter a positive number.',
+    note1:'Bill = energy charge (progressive tiers) + meter 0.200 + rural 0.001×kWh + TV 1.000 + waste (20/12 + 0.005×(kWh−200), never below 0). All amounts in JD.',
+    note2:'In "bill" mode the kWh is solved separately for each tariff, so the same bill means different consumption under each one.',
+    langBtn:'Arabic', light:'☀️ Light', dark:'🌙 Dark', title2:'Electricity Tariff Calculator'
+  }
+};
+let lang=document.documentElement.lang==='en'?'en':'ar';
+const T=k=>I18N[lang][k];
+
+// Tiers: [upper limit kWh, JD per kWh]
+const TARIFFS = [
+  {id:'old', color:'var(--c-old)', tiers:[[160,.033],[300,.072],[500,.086],[600,.114],[750,.158],[Infinity,.188]]},
+  {id:'sub', color:'var(--c-sub)', tiers:[[300,.05],[600,.1],[Infinity,.2]]},
+  {id:'uns', color:'var(--c-uns)', tiers:[[Infinity,.12]]},
+];
+
+function breakdown(t, kwh){
+  const rows=[]; let prev=0, energy=0;
+  for(const [hi,rate] of t.tiers){
+    const used=Math.max(0, Math.min(kwh,hi)-prev);
+    if(used>0){
+      const range = hi===Infinity ? T('tierOver')(prev) : T('tierRange')(prev,hi);
+      rows.push([`${range}: ${+used.toFixed(2)} × ${+(rate*1000).toFixed(0)} ${T('fils')}`, used*rate]);
+      energy+=used*rate;
+    }
+    prev=hi; if(kwh<=hi) break;
+  }
+  const meter=0.2, rural=0.001*kwh, tv=1, waste=Math.max(0,20/12+(kwh-200)*0.005);
+  return {rows,energy,meter,rural,tv,waste,total:energy+meter+rural+tv+waste};
+}
+const bill=(t,k)=>breakdown(t,k).total;
+
+// Bill is strictly increasing in kWh -> bisection
+function solveKwh(t, target){
+  if(target<bill(t,0)) return null;
+  let lo=0, hi=1;
+  while(bill(t,hi)<target) hi*=2;
+  for(let i=0;i<100;i++){ const m=(lo+hi)/2; bill(t,m)<target?lo=m:hi=m; }
+  return (lo+hi)/2;
+}
+
+const f=(x,d=3)=>x.toFixed(d);          // always Western digits 0-9
+let mode='kwh';
+const $=id=>document.getElementById(id);
+
+// accept any digit script / Arabic decimal separator, normalise to 0-9 and "."
+function normalise(s){
+  const AR='٠١٢٣٤٥٦٧٨٩', FA='۰۱۲۳۴۵۶۷۸۹';
+  s=s.replace(/[٠-٩۰-۹]/g,c=>{let i=AR.indexOf(c);return i<0?FA.indexOf(c):i});
+  s=s.replace(/[٫,،]/g,'.').replace(/[^0-9.]/g,'');
+  const p=s.split('.'); return p.length>1?p[0]+'.'+p.slice(1).join(''):s;
+}
+
+function render(){
+  const raw=$('inp').value, err=$('err'), out=$('out');
+  const clean=normalise(raw); if(clean!==raw) $('inp').value=clean;
+  const v=parseFloat(clean);
+  err.textContent=''; out.innerHTML='';
+  if(!(v>=0)){ if(clean!=='') err.textContent=T('bad'); return; }
+  for(const t of TARIFFS){
+    let kwh=v;
+    if(mode==='bill'){
+      kwh=solveKwh(t,v);
+      if(kwh===null){ out.insertAdjacentHTML('beforeend',card(t,`<div class="sub">${T('below')(f(bill(t,0)))}</div>`)); continue; }
+    }
+    const b=breakdown(t,kwh);
+    const r=[...b.rows,[T('meter'),b.meter],[T('rural'),b.rural],[T('tv'),b.tv],[T('waste'),b.waste]];
+    const head= mode==='kwh'
+      ? `<div class="big">${f(b.total)} ${T('unitJd')}</div><div class="sub">${T('forKwh')(+(+kwh).toFixed(2))}</div>`
+      : `<div class="big">${f(kwh,1)} ${T('unitKwh')}</div><div class="sub">${T('forBill')(f(v))}</div>`;
+    const tbl='<table>'+r.map(([a,x])=>`<tr><td>${a}</td><td>${f(x)}</td></tr>`).join('')+
+      `<tr class="tot"><td>${T('total')}</td><td>${f(b.total)}</td></tr></table>`;
+    out.insertAdjacentHTML('beforeend',card(t,head+tbl));
+  }
+}
+const card=(t,body)=>`<div class="card t" style="--c:${t.color}"><h2>${T(t.id)}</h2>${body}</div>`;
+
+function labels(){
+  document.querySelectorAll('[data-i]').forEach(e=>e.textContent=T(e.dataset.i));
+  $('lbl').textContent=mode==='kwh'?T('lblKwh'):T('lblBill');
+  $('lang').textContent=T('langBtn');
+  const th=document.documentElement.dataset.theme;
+  $('theme').textContent=th==='dark'?T('light'):T('dark');
+  document.title=T('title2');
+}
+function setMode(m,reset=true){
+  mode=m;
+  $('mKwh').classList.toggle('on',m==='kwh'); $('mBill').classList.toggle('on',m==='bill');
+  if(reset) $('inp').value=m==='kwh'?300:20;
+  labels(); render();
+}
+function setLang(l){
+  lang=l; const d=document.documentElement; d.lang=l; d.dir=l==='ar'?'rtl':'ltr';
+  try{localStorage.setItem('lang',l)}catch(e){}
+  labels(); render();
+}
+function setTheme(th){
+  document.documentElement.dataset.theme=th;
+  try{localStorage.setItem('theme',th)}catch(e){}
+  labels();
+}
+$('mKwh').onclick=()=>setMode('kwh');
+$('mBill').onclick=()=>setMode('bill');
+$('inp').addEventListener('input',render);
+$('lang').onclick=()=>setLang(lang==='ar'?'en':'ar');
+$('theme').onclick=()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+setMode('kwh',false);
+</script>
+</body>
+</html>
